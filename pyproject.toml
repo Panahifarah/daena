@@ -1,0 +1,91 @@
+[project]
+name = "daena"
+version = "0.1.0"
+description = "Collect, buffer, and forward logs and events from Linux to central observability backends"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+authors = [
+    { name = "Amir Husayn Panahifar", email = "ahp@panahifar.ir" },
+]
+keywords = ["logging", "observability", "linux", "daemon", "events"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring",
+]
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "PyYAML>=6.0",
+    "structlog>=24.0",
+    "typer>=0.12",
+    "httpx>=0.28",
+    "lmdb>=1.5",
+    "tenacity>=8.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+daena = "daena.cli.main:app"
+daena-serve = "daena.app:serve"
+
+[project.entry-points."daena.sources"]
+dummy = "daena.pipeline.sources.dummy:DummySource"
+
+[project.entry-points."daena.sinks"]
+dummy = "daena.pipeline.sinks.dummy:DummySink"
+http = "daena.pipeline.sinks.http:HTTPSink"
+
+[project.entry-points."daena.processors"]
+passthrough = "daena.pipeline.processors.passthrough:PassthroughProcessor"
+
+[tool.pyproject-fmt]
+max_blank_lines = 1
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ARG"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_ignores = true
+exclude = [
+    "tests/",
+    ".venv/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
