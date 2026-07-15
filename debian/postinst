@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Create daena user if it doesn't exist
+        if ! getent passwd daena >/dev/null 2>&1; then
+            adduser --system --group --no-create-home --home /var/lib/daena \
+                --shell /sbin/nologin daena
+        fi
+
+        # Create required directories
+        mkdir -p /var/lib/daena /var/log/daena /run/daena /etc/daena
+        chown daena:daena /var/lib/daena /var/log/daena /run/daena
+
+        # Reload systemd
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+        fi
+        ;;
+esac
