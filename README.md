@@ -10,7 +10,7 @@ Daena is a modular, extensible Linux service that:
 - Normalizes and processes records through a configurable pipeline
 - Persists data locally in LMDB for durability, replay, and buffering
 - Forwards records reliably to one or more remote sinks
-- Exposes a REST API for management and inspection
+- Exposes a gRPC API for management and inspection
 - Provides a CLI for operational tasks
 - Degrades gracefully under failures with retry, backoff, and dead-letter queues
 
@@ -67,7 +67,10 @@ asyncio.run(main())
 # Run tests
 uv run pytest tests/ -v
 
-# Use the CLI (point at a running daena API)
+# Start gRPC server
+uv run daena-serve
+
+# Use the CLI (point at a running daena gRPC API)
 uv run daena status
 uv run daena health
 uv run daena queue
@@ -78,15 +81,20 @@ uv run daena queue
 ```
 daena/
 ├── pyproject.toml              # Project metadata, dependencies, entry points
+├── Dockerfile                  # Container image
+├── proto/daena/v1/daena.proto  # gRPC service definition
 ├── config/daena.yaml           # Example configuration
 ├── deploy/daena.service        # systemd unit file
+├── .github/workflows/ci.yml    # CI pipeline
 ├── src/daena/
-│   ├── app.py                  # `daena-serve` entry point (uvicorn)
+│   ├── app.py                  # `daena-serve` entry point (async gRPC)
 │   ├── config.py               # YAML → pydantic config
 │   ├── logutil.py              # structlog setup
 │   ├── exceptions.py           # Domain exceptions
-│   ├── api/                    # FastAPI REST API (v1 versioned)
-│   ├── cli/                    # Typer CLI
+│   ├── api/
+│   │   ├── grpc_server.py      # DaenaServicer + DaenaGRPCServer
+│   │   └── pb2/                # Generated gRPC stubs
+│   ├── cli/                    # Typer CLI (gRPC client)
 │   ├── core/
 │   │   ├── runtime.py          # Service lifecycle
 │   │   └── pipeline.py         # Collection → persist → dispatch
@@ -117,9 +125,10 @@ logging:
   format: json
 
 api:
-  http:
+  grpc:
     host: 127.0.0.1
     port: 8642
+    max_workers: 10
 
 persistence:
   backend: lmdb
@@ -144,20 +153,43 @@ sinks:
       url: https://logs.example.com/ingest
 ```
 
-## REST API
+## gRPC API
 
-The API runs on `http://127.0.0.1:8642/api/v1`:
+The gRPC API runs on `127.0.0.1:8642` with the following RPCs:
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /system/status` | Service status |
-| `GET /system/health` | Health check |
-| `GET /system/config` | Loaded configuration |
-| `GET /plugins` | Registered plugins |
-| `GET /queue` | Queue state counts |
-| `GET /queue/pending` | Pending records |
-| `GET /queue/dead` | Dead-letter records |
-| `GET /sinks` | Configured sinks |
+| RPC | Description |
+|-----|-------------|
+| `GetStatus` | Service status and version |
+| `GetHealth` | Health check (backend, plugins, runtime) |
+| `GetConfig` | Loaded configuration as JSON |
+| `ListPlugins` | Registered sources, processors, and sinks |
+| `GetQueueState` | Queue state counts (pending, delivered, failed, dead) |
+| `ListPendingRecords` | Pending records with pagination |
+| `ListDeadRecords` | Dead-letter records with pagination |
+| `ListSinks` | Configured sinks |
+| `ReloadConfig` | Reload service configuration at runtime |
+
+### Reflect the gRPC service
+
+```bash
+# Install grpcurl to inspect the service
+grpcurl -plaintext 127.0.0.1:8642 list
+grpcurl -plaintext 127.0.0.1:8642 describe daena.v1.Daena
+```
+
+## CLI
+
+Daena provides a CLI that connects to the gRPC server:
+
+```bash
+daena status       # Show service status
+daena health       # Check health
+daena queue        # Inspect queue state
+daena sinks        # List configured sinks
+daena plugins      # List registered plugins
+daena config       # Show loaded configuration
+daena version      # Show version
+```
 
 ## Deployment
 
@@ -176,6 +208,21 @@ sudo cp config/daena.yaml /etc/daena/
 sudo cp deploy/daena.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now daena
+```
+
+### Docker
+
+```bash
+# Build image
+docker build -t daena:latest .
+
+# Run with config
+docker run -d \
+  --name daena \
+  -v /path/to/daena.yaml:/etc/daena/daena.yaml:ro \
+  -v daena-data:/var/lib/daena \
+  -p 8642:8642 \
+  daena:latest
 ```
 
 ## Extending
