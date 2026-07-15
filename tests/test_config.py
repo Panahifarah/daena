@@ -9,7 +9,7 @@ def test_minimal_config_has_defaults() -> None:
     config = DaenaConfig()
     assert config.data_dir == "/var/lib/daena"
     assert config.logging.level == "info"
-    assert config.api.http.port == 8642
+    assert config.api.grpc.port == 8642
     assert config.pipeline.batch_size == 100
 
 

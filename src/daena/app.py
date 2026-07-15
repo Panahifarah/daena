@@ -1,42 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
-import uvicorn
-
-from daena.api.server import DaenaAPI
+from daena.api.grpc_server import DaenaGRPCServer
 from daena.config import load_config
+from daena.core.runtime import DaenaRuntime
 from daena.logutil import get_logger, setup_logging
 
 log = get_logger("daena.app")
-
-
-def serve() -> None:
-    """Entry point for `daena-serve` (systemd/uvicorn mode)."""
-    config_path = _resolve_config_path()
-    config = load_config(config_path)
-    setup_logging(
-        level=config.logging.level,
-        fmt=config.logging.format,
-        log_file=config.logging.file,
-    )
-
-    runtime = _build_runtime(config)
-    api = DaenaAPI(runtime)
-    app = api.build()
-
-    log.info(
-        "starting_server",
-        host=config.api.http.host,
-        port=config.api.http.port,
-    )
-    uvicorn.run(
-        app,
-        host=config.api.http.host,
-        port=config.api.http.port,
-        workers=config.api.http.workers,
-        log_level=config.logging.level,
-    )
 
 
 def _resolve_config_path() -> str | None:
@@ -51,11 +23,40 @@ def _resolve_config_path() -> str | None:
     return None
 
 
-def _build_runtime(config):
-    """Lazy import to prevent premature backend init."""
-    from daena.core.runtime import DaenaRuntime
+def serve() -> None:
+    """Entry point for `daena-serve` (systemd/gRPC mode)."""
+    config_path = _resolve_config_path()
+    config = load_config(config_path)
+    setup_logging(
+        level=config.logging.level,
+        fmt=config.logging.format,
+        log_file=config.logging.file,
+    )
 
-    return DaenaRuntime(config)
+    runtime = DaenaRuntime(config)
+
+    server = DaenaGRPCServer(
+        runtime,
+        host=config.api.grpc.host,
+        port=config.api.grpc.port,
+    )
+
+    async def run() -> None:
+        await runtime.start()
+        await server.start()
+        log.info(
+            "grpc_server_serving",
+            address=f"{config.api.grpc.host}:{config.api.grpc.port}",
+        )
+        try:
+            await server.serve_forever()
+        except asyncio.CancelledError:
+            pass
+        finally:
+            await server.stop()
+            await runtime.stop()
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":

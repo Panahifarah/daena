@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package daena.v1;
+
+service Daena {
+  rpc GetStatus(Empty) returns (StatusResponse);
+  rpc GetHealth(Empty) returns (HealthResponse);
+  rpc GetConfig(Empty) returns (ConfigResponse);
+  rpc ListPlugins(Empty) returns (PluginListResponse);
+  rpc GetQueueState(Empty) returns (QueueStateResponse);
+  rpc ListPendingRecords(Pagination) returns (RecordList);
+  rpc ListDeadRecords(Pagination) returns (RecordList);
+  rpc ListSinks(Empty) returns (SinkList);
+  rpc ReloadConfig(Empty) returns (ReloadResponse);
+}
+
+message Empty {}
+
+message StatusResponse {
+  string service = 1;
+  string version = 2;
+  bool running = 3;
+}
+
+message HealthResponse {
+  bool healthy = 1;
+  bool running = 2;
+  bool backend = 3;
+  bool plugins_loaded = 4;
+}
+
+message ConfigResponse {
+  string config_json = 1;
+}
+
+message PluginInfo {
+  string name = 1;
+  string class_name = 2;
+}
+
+message PluginCategory {
+  repeated PluginInfo items = 1;
+}
+
+message PluginListResponse {
+  PluginCategory sources = 1;
+  PluginCategory processors = 2;
+  PluginCategory sinks = 3;
+}
+
+message QueueStateResponse {
+  int64 pending = 1;
+  int64 delivered = 2;
+  int64 failed = 3;
+  int64 dead = 4;
+  int64 total = 5;
+}
+
+message Pagination {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message RecordData {
+  string record_id = 1;
+  string source = 2;
+  string record_type = 3;
+  string body = 4;
+  string metadata = 5;
+  string state = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  int32 retry_count = 9;
+  string next_retry_at = 10;
+  string last_error = 11;
+  string destination = 12;
+}
+
+message RecordList {
+  repeated RecordData records = 1;
+  int32 count = 2;
+}
+
+message SinkInfo {
+  string name = 1;
+  string type = 2;
+}
+
+message SinkList {
+  repeated SinkInfo sinks = 1;
+}
+
+message ReloadResponse {
+  bool success = 1;
+  string message = 2;
+}

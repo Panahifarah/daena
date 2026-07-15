@@ -10,10 +10,10 @@ logging:
   format: json
 
 api:
-  http:
+  grpc:
     host: 127.0.0.1
     port: 8642
-    workers: 1
+    max_workers: 10
 
 pipeline:
   batch_size: 100

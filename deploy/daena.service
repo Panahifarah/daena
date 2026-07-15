@@ -14,7 +14,6 @@ ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5
 
-AmbientCapabilities=CAP_SYS_PTRACE
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true

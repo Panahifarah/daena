@@ -14,14 +14,14 @@ class LoggingConfig(BaseSettings):
     file: str | None = None
 
 
-class APIHTTPConfig(BaseSettings):
+class GRPCConfig(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8642
-    workers: int = 1
+    max_workers: int = 10
 
 
 class APIConfig(BaseSettings):
-    http: APIHTTPConfig = APIHTTPConfig()
+    grpc: GRPCConfig = GRPCConfig()
 
 
 class SinkRetryConfig(BaseSettings):
