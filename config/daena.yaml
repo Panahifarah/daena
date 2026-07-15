@@ -1,0 +1,47 @@
+# daena configuration
+# Path: /etc/daena/daena.yaml
+
+data_dir: /var/lib/daena
+log_dir: /var/log/daena
+pid_file: /run/daena/daena.pid
+
+logging:
+  level: info
+  format: json
+
+api:
+  http:
+    host: 127.0.0.1
+    port: 8642
+    workers: 1
+
+pipeline:
+  batch_size: 100
+  flush_interval: 5.0
+  max_queue_size: 10000
+
+persistence:
+  backend: lmdb
+  lmdb:
+    path: /var/lib/daena/data
+    map_size: 104857600
+    max_databases: 16
+
+sources:
+  - name: dummy
+    type: dummy
+    enabled: true
+    options:
+      interval: 5.0
+      message: "daena heartbeat"
+
+processors:
+  - name: passthrough
+    type: passthrough
+    enabled: true
+
+sinks:
+  - name: log
+    type: dummy
+    enabled: true
+    options: {}

@@ -1,0 +1,31 @@
+[Unit]
+Description=Daena - Linux log and event collector
+Documentation=https://github.com/anomalyco/daena
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=daena
+Group=daena
+
+ExecStart=/usr/local/bin/daena-serve
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+AmbientCapabilities=CAP_SYS_PTRACE
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+StateDirectory=daena
+LogsDirectory=daena
+RuntimeDirectory=daena
+
+# Environment
+Environment=DAENA_CONFIG_PATH=/etc/daena/daena.yaml
+
+[Install]
+WantedBy=multi-user.target

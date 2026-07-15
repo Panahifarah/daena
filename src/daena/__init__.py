@@ -1,1 +1,1 @@
-from daena._version import __version__
+from daena._version import __version__ as __version__
