@@ -7,7 +7,7 @@ BUILDROOT="/tmp/build/${PACKAGE}"
 DISTDIR="dist"
 
 pip install uv --quiet
-uv sync --no-dev --frozen --quiet
+uv sync --no-dev --quiet
 
 # Create package directory structure
 rm -rf "${BUILDROOT}"
